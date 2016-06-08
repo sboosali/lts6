@@ -27,19 +27,22 @@ https://ocharles.org.uk/blog/posts/2013-12-19-websockets.html
 main :: IO ()
 main = do
   putStrLn "[listening...]"
-  WS.runServer "127.0.0.1" 8888 handleConnection
+  WS.runServer "127.0.0.1" 8888 (application 0)
 
 -- handleConnection will be invoked every time a client connects to the server.
 -- we need to accept the connection to complete the handshake.
-handleConnection pending = do
+application initial pending = do
   connection <- WS.acceptRequest pending
-  message <- WS.receiveData connection
-  forever $ do
-    respond connection message
+  respond connection (initial ::Int)
 
-respond connection message = do
-  let response = (message :: T.Text) <> "!!!"
-  WS.sendTextData connection response
+
+respond connection i = do                 -- e.g. 1
+    request <- WS.receiveData connection  -- "2" (await)
+    let j = read (T.unpack request)       -- 2
+    let k = i+j                           -- 3
+    let response = T.pack (show k)        -- "3"
+    WS.sendTextData connection response   -- (yield)
+    respond connection k                  -- (loop)
 
 {-
   case message of
