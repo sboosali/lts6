@@ -1,0 +1,159 @@
+name:                lts6
+version:             0.0.0
+synopsis:            the subset of lts-6 i've used (exports no modules)
+description:         for building code / documentation
+homepage:            http://github.com/sboosali/lts6#readme
+license:             BSD3
+author:              Spiros Boosalis
+maintainer:          samboosalis@gmail.com
+copyright:           2016 Spiros Boosalis
+category:            TODO
+build-type:          Simple
+cabal-version:       >=1.10
+
+extra-source-files:
+  README.md
+  .gitignore
+  stack.yaml
+
+source-repository head
+  type:     git
+  location: https://github.com/sboosali/lts6
+
+executable it
+    main-is: Main.hs
+    hs-source-dirs: .
+    default-language: Haskell2010
+    build-depends: base, lts6
+    ghc-options: 
+     -Wall
+     -threaded 
+
+library
+ hs-source-dirs:   example
+ exposed-modules:  Example
+ default-language:    Haskell2010
+ ghc-options:         -Wall
+
+ build-depends:
+
+       base
+
+     -- extra-deps
+
+     , language-python
+     , recursion-schemes
+
+     -- standard library
+     , time
+     , bytestring
+     , stm
+     , template-haskell
+     , containers
+     , mtl
+     , transformers
+     , ghc-prim
+     , Cabal
+     , filepath
+     , array
+     , vector
+
+     , mtl
+     , transformers
+
+     , stm
+
+
+     -- ekmett
+     , bifunctors
+     , profunctors
+     , free
+     , tagged
+     , kan-extensions
+     , reducers
+     , exceptions
+     , lens
+     , either
+     , semigroups
+
+     -- servant
+     , servant-client
+     , servant-server
+     , servant
+
+     -- pipes
+
+     , pipes
+     , pipes-aeson
+     , pipes-attoparsec
+     , pipes-bgzf
+     , pipes-binary
+     , pipes-bytestring
+     , pipes-cacophony
+     , pipes-cliff
+     , pipes-concurrency
+     , pipes-csv
+     , pipes-extras
+     , pipes-fastx
+     , pipes-group
+     , pipes-http
+     , pipes-illumina
+     , pipes-mongodb
+     , pipes-network
+     , pipes-parse
+     , pipes-safe
+     , pipes-text
+     , pipes-transduce
+     , pipes-wai
+
+     -- other
+     , vinyl
+
+     , safe
+
+
+     , async
+     , parallel
+
+     , deepseq
+     , hashable
+     , semigroups
+
+     , text
+     , bytestring
+
+     , unordered-containers
+     , containers
+     , vector
+
+     , time
+     , process
+     , directory
+     , shake
+     , optparse-applicative
+     , optparse-generic
+
+     , split
+     , wl-pprint-text
+
+     , interpolatedstring-perl6
+     , haskell-src-exts
+
+     , aeson
+     , websockets
+
+     , Earley
+     , split
+     , ListLike
+     , text
+     , wl-pprint-text
+     , formatting
+     , interpolatedstring-perl6
+     , http-types
+     , vector
+     , async
+     , parallel
+     , hashable
+     , MemoTrie
+     , unordered-containers
+     , regex-applicative
