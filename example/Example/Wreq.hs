@@ -1,26 +1,37 @@
-{-# LANGUAGE OverloadedStrings, ExtendedDefaultRules, NoMonomorphismRestriction #-}
+{-# LANGUAGE OverloadedStrings, OverloadedLists, ExtendedDefaultRules, NoMonomorphismRestriction, RecordWildCards #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures -fno-warn-type-defaults #-}
+{-# OPTIONS_GHC -fno-warn-unused-imports #-}
 module Example.Wreq where
 
 import Network.Wreq
 import Control.Lens
---import Data.Aeson
---import Data.Aeson.Lens
-import qualified Data.ByteString.Lazy.Char8 as B
+import Data.Aeson
+import Data.Aeson.Lens
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as BL
+import qualified Data.ByteString.Lazy.Char8 as BL8
 import Data.ByteString.Lazy (ByteString)
---import qualified Data.Text.IO as T
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
+import qualified Data.Text.IO as T
+import Data.Text (Text)
 
 import Data.Monoid ((<>))
 import Data.Foldable (traverse_)
-import System.Environment
+import System.Environment (getEnv)
+import System.IO (openBinaryFile,IOMode(..))
 
 default(Integer)
 
 main = do
   apikey <- getEnv "apikey"                     -- secret
   print apikey
-  r <- postGoogleSpeechAPI apikey "audio.json"
-  traverse_ B.putStrLn $ r ^? responseBody
+
+  -- r <- postGoogleSpeech apikey "audio.json"
+  -- traverse_ B.putStrLn $ r ^? responseBody
+
+  r' <- postGoogleSpeech' apikey "audio.base64"
+  traverse_ BL8.putStrLn $ r' ^? responseBody
 
 {-
 
@@ -68,12 +79,26 @@ ghci> r <- post "http://httpbin.org/post" [partText "button" "o hai"]
 ghci> r ^. responseBody . key "headers" . key "Content-Type" . _String
 "multipart/form-data; boundary=----WebKitFormBoundaryJsEZfuj89uj"
 
+3.
+
+"Base64 is a group of similar binary-to-text encoding schemes that represent binary data in an ASCII string format by translating it into a radix-64 representation."
+
+"When you have some binary data that you want to ship across a network, you generally don't do it by just streaming the bits and bytes over the wire in a raw format. Why? because some media are made for streaming text. You never know -- some protocols may interpret your binary data as control characters (like a modem), or your binary data could be screwed up because the underlying protocol might think that you've entered a special character combination (like how FTP translates line endings).
+
+So to get around this, people encode the binary data into characters. Base64 is one of these types of encodings. Why 64? Because you can generally rely on the same 64 characters being present in many character sets, and you can be reasonably confident that your data's going to end up on the other side of the wire uncorrupted."
+
 -}
 
 --------------------------------------------------------------------------------
 
 type APIKey = String
 
+data GoogleSpeechRequest = GoogleSpeechRequest
+ { gAudio :: Text -- ByteString
+ }
+
+
+(-:) = (,)
 
 {-|
 
@@ -82,7 +107,7 @@ e.g.
 @
 do
   apikey <- getEnv "apikey"                     -- secret
-  r <- postGoogleSpeechAPI apikey "audio.json"  -- json request, has base64-encoded audio
+  r <- postGoogleSpeech apikey "audio.json"  -- json request, has base64-encoded audio
 @
 
 port:
@@ -117,15 +142,53 @@ and
 @
 
 -}
-postGoogleSpeechAPI :: APIKey -> FilePath -> IO (Response ByteString)
-postGoogleSpeechAPI apikey file = do
-  audio <- B.readFile file
-  r <- postWith o (url <> apikey) audio
+postGoogleSpeech :: APIKey -> FilePath -> IO (Response ByteString)
+postGoogleSpeech apikey file = do
+  audio <- BL8.readFile file
+  r <- postWith optionsGoogleSpeech (urlGoogleSpeech <> apikey) audio
   return r
 
-  where
-  o = defaults
-      & header "Content-Type" .~ ["application/json"]
+postGoogleSpeech' :: APIKey -> FilePath -> IO (Response ByteString)
+postGoogleSpeech' apikey file = do
+  h <- openBinaryFile file ReadMode
+  _audio <- BS.hGetLine h                      -- no final newline
+  let gAudio = T.decodeUtf8 _audio
+  let _json = request GoogleSpeechRequest{..}
+  let _body = encode _json
+  -- BL8.putStrLn _body
+  r <- postWith optionsGoogleSpeech (urlGoogleSpeech <> apikey) _body
+  return r
 
-  url = "https://speech.googleapis.com/v1/speech:recognize?key="
+optionsGoogleSpeech = defaults
+  & header "Content-Type" .~ ["application/json"]
+
+urlGoogleSpeech = "https://speech.googleapis.com/v1/speech:recognize?key="
+
+{-|
+
+e.g.
+
+@
+{
+  "initialRequest": {
+    "encoding":"FLAC",
+    "sampleRate":16000
+  },
+  "audioRequest": {
+    "content": "$(cat audio.base64)"
+  }
+}
+@
+
+-}
+request :: GoogleSpeechRequest -> Value
+request GoogleSpeechRequest{..} = Object
+  [ "initialRequest"-: Object
+    [ "encoding"  -: String "FLAC"
+    , "sampleRate"-: Number 16000
+    ]
+  , "audioRequest"-: Object
+    [ "content"-: String gAudio
+    ]
+  ]
 
