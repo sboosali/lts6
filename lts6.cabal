@@ -35,6 +35,7 @@ library
                  Example
                  Example.WebSockets
                  Example.Wreq
+                 Example.PortAudio
 
  default-language:    Haskell2010
  ghc-options:         -Wall
@@ -165,3 +166,4 @@ library
      , wreq
      , lens-aeson
      , base64-bytestring
+     , portaudio

@@ -5,3 +5,4 @@ packages:
 
 extra-deps:
 - language-python-0.5.2
+- portaudio-0.2.4
