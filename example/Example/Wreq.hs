@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, OverloadedLists, ExtendedDefaultRules, NoMonomorphismRestriction, RecordWildCards #-}
+{-# LANGUAGE OverloadedStrings, OverloadedLists, ExtendedDefaultRules, NoMonomorphismRestriction, RecordWildCards, FlexibleContexts #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures -fno-warn-type-defaults #-}
 {-# OPTIONS_GHC -fno-warn-unused-imports #-}
 module Example.Wreq where
@@ -29,14 +29,17 @@ main = do
   apikey <- getEnv "apikey"                     -- secret
   print apikey
 
-  -- r <- postGoogleSpeech apikey "audio.json"
-  -- traverse_ B.putStrLn $ r ^? responseBody
+  -- rJSON <- postGoogleSpeechJSON apikey "audio.json"
+  -- traverse_ B.putStrLn $ rJSON ^? responseBody
 
-  -- r' <- postGoogleSpeech' apikey "audio.base64"
-  -- traverse_ BL8.putStrLn $ r' ^? responseBody
+  -- rBase64 <- postGoogleSpeechBase64 apikey "audio.base64"
+  -- traverse_ BL8.putStrLn $ rBase64 ^? responseBody
 
-  r'' <- postGoogleSpeech'' apikey "audio.flac"
-  traverse_ BL8.putStrLn $ r'' ^? responseBody
+  -- rFLAC <- postGoogleSpeechFLAC apikey "audio.flac"
+  -- traverse_ BL8.putStrLn $ rFLAC ^? responseBody
+
+  ts <- transcribeFLACGoogleSpeech apikey "audio.flac"
+  traverse_ T.putStrLn ts
 
 {-
 
@@ -102,8 +105,51 @@ data GoogleSpeechRequest = GoogleSpeechRequest
  { gAudio :: Text -- ByteString
  }
 
-
 (-:) = (,)
+
+
+{-|
+
+e.g.
+
+@
+{
+  "responses": [
+    {
+      "results": [
+        {
+          "alternatives": [
+            {
+              "transcript": "how old is the Brooklyn Bridge",
+              "confidence": 0.98267895
+            }
+          ],
+          "isFinal": true
+        }
+      ]
+    }
+  ]
+}
+@
+
+-}
+transcribeFLACGoogleSpeech :: APIKey -> FilePath -> IO [Text]
+transcribeFLACGoogleSpeech apikey file = do
+  r <- postGoogleSpeechFLAC apikey file
+  let ts = r ^.. responseBody . _JSON . transcripts
+  return ts
+
+transcripts :: Traversal' Value Text
+transcripts
+  = key"responses"
+  . _Array . each
+  . key"results" --TODO filter by key"isFinal"
+  . _Array . each
+  . key"alternatives"
+  . _Array . each
+  . key"transcript"
+  . _String
+
 
 {-|
 
@@ -147,8 +193,8 @@ and
 @
 
 -}
-postGoogleSpeech :: APIKey -> FilePath -> IO (Response ByteString)
-postGoogleSpeech apikey file = do
+postGoogleSpeechJSON :: APIKey -> FilePath -> IO (Response ByteString)
+postGoogleSpeechJSON apikey file = do
   audio <- BL8.readFile file
   r <- postWith optionsGoogleSpeech (urlGoogleSpeech <> apikey) audio
   return r
@@ -158,8 +204,8 @@ postGoogleSpeech apikey file = do
 e.g. reads @audio.base64@
 
 -}
-postGoogleSpeech' :: APIKey -> FilePath -> IO (Response ByteString)
-postGoogleSpeech' apikey file = do
+postGoogleSpeechBase64 :: APIKey -> FilePath -> IO (Response ByteString)
+postGoogleSpeechBase64 apikey file = do
   h <- openBinaryFile file ReadMode
   _audio <- BS.hGetLine h                      -- base64 file has a final newline we must strip
   let gAudio = T.decodeUtf8 _audio
@@ -176,8 +222,8 @@ postGoogleSpeech' apikey file = do
 e.g. reads @audio.flac@
 
 -}
-postGoogleSpeech'' :: APIKey -> FilePath -> IO (Response ByteString)
-postGoogleSpeech'' apikey file = do
+postGoogleSpeechFLAC :: APIKey -> FilePath -> IO (Response ByteString)
+postGoogleSpeechFLAC apikey file = do
   h <- openBinaryFile file ReadMode
   _flac <- BS.hGetContents h                      -- flac file has no final newline
   let _base64 = B64.encode _flac
