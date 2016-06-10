@@ -9,8 +9,10 @@ import Data.Aeson
 import Data.Aeson.Lens
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BL
+import qualified Data.ByteString.Char8 as BS8
 import qualified Data.ByteString.Lazy.Char8 as BL8
 import Data.ByteString.Lazy (ByteString)
+import qualified Data.ByteString.Base64 as B64
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.IO as T
@@ -30,8 +32,11 @@ main = do
   -- r <- postGoogleSpeech apikey "audio.json"
   -- traverse_ B.putStrLn $ r ^? responseBody
 
-  r' <- postGoogleSpeech' apikey "audio.base64"
-  traverse_ BL8.putStrLn $ r' ^? responseBody
+  -- r' <- postGoogleSpeech' apikey "audio.base64"
+  -- traverse_ BL8.putStrLn $ r' ^? responseBody
+
+  r'' <- postGoogleSpeech'' apikey "audio.flac"
+  traverse_ BL8.putStrLn $ r'' ^? responseBody
 
 {-
 
@@ -148,11 +153,36 @@ postGoogleSpeech apikey file = do
   r <- postWith optionsGoogleSpeech (urlGoogleSpeech <> apikey) audio
   return r
 
+{-
+
+e.g. reads @audio.base64@
+
+-}
 postGoogleSpeech' :: APIKey -> FilePath -> IO (Response ByteString)
 postGoogleSpeech' apikey file = do
   h <- openBinaryFile file ReadMode
-  _audio <- BS.hGetLine h                      -- no final newline
+  _audio <- BS.hGetLine h                      -- base64 file has a final newline we must strip
   let gAudio = T.decodeUtf8 _audio
+  let _json = request GoogleSpeechRequest{..}
+  let _body = encode _json
+  -- BL8.putStrLn _body
+  r <- postWith optionsGoogleSpeech (urlGoogleSpeech <> apikey) _body
+  return r
+
+  -- json stores text, even though we're reading bytestring and decoding back into bytestring
+
+{-
+
+e.g. reads @audio.flac@
+
+-}
+postGoogleSpeech'' :: APIKey -> FilePath -> IO (Response ByteString)
+postGoogleSpeech'' apikey file = do
+  h <- openBinaryFile file ReadMode
+  _flac <- BS.hGetContents h                      -- flac file has no final newline
+  let _base64 = B64.encode _flac
+  -- BS8.putStrLn _base64
+  let gAudio = T.decodeUtf8 _base64
   let _json = request GoogleSpeechRequest{..}
   let _body = encode _json
   -- BL8.putStrLn _body
