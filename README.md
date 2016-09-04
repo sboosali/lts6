@@ -5,9 +5,9 @@ Proof-of-concepts (to be moved somewhere useful).
 ## Running
 
     stack build
-    stack exec it -- websockets
-    stack exec it -- wreq
-    stack exec it -- portaudio
+    stack exec -- it websockets
+    stack exec -- it wreq
+    stack exec -- it portaudio
 
 ## Example.WebSockets
 

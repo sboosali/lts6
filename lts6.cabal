@@ -33,13 +33,17 @@ library
  hs-source-dirs:   example
  exposed-modules:
                  Example
+                 Example.Playground
                  Example.WebSockets
                  Example.Wreq
                  Example.PortAudio
+                 Example.Redis
+                 Example.RankNClassy
+                  
 
  default-language:    Haskell2010
  ghc-options:         -Wall
-
+                      
  build-depends:
 
        base
@@ -167,3 +171,5 @@ library
      , lens-aeson
      , base64-bytestring
      , portaudio
+
+     , hedis

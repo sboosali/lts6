@@ -25,6 +25,8 @@ import System.IO (openBinaryFile,IOMode(..))
 
 default(Integer)
 
+flacFile = "final.flac" -- "audio.flac"
+
 main = do
   apikey <- getEnv "apikey"                     -- secret
   print apikey
@@ -38,7 +40,7 @@ main = do
   -- rFLAC <- postGoogleSpeechFLAC apikey "audio.flac"
   -- traverse_ BL8.putStrLn $ rFLAC ^? responseBody
 
-  ts <- transcribeFLACGoogleSpeech apikey "audio.flac"
+  ts <- transcribeFLACGoogleSpeech apikey flacFile
   traverse_ T.putStrLn ts
 
 {-
